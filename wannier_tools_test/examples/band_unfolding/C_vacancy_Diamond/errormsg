@@ -1,0 +1,19 @@
+Loading mkl2022.2.1 version modules
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[proxy:0:14@node015] HYD_spawn (../../../../../src/pm/i_hydra/libhydra/spawn/intel/hydra_spawn.c:151): execvp error on file /home/ycshen/wannier_tools_test/bin/wt.x (Permission denied)
+[mpiexec@node001] HYD_sock_write (../../../../../src/pm/i_hydra/libhydra/sock/hydra_sock_intel.c:362): write error (Bad file descriptor)
+[mpiexec@node001] cmd_bcast_root (../../../../../src/pm/i_hydra/mpiexec/mpiexec.c:194): error sending cmd 9 to proxy
+[mpiexec@node001] send_signal_downstream (../../../../../src/pm/i_hydra/mpiexec/intel/i_mpiexec.c:584): unable to send response downstream
+[mpiexec@node001] control_cb (../../../../../src/pm/i_hydra/mpiexec/mpiexec.c:1647): unable to send signal to downstreams
+[mpiexec@node001] HYDI_dmx_poll_wait_for_event (../../../../../src/pm/i_hydra/libhydra/demux/hydra_demux_poll.c:80): callback returned error status
+[mpiexec@node001] main (../../../../../src/pm/i_hydra/mpiexec/mpiexec.c:2086): error waiting for event
