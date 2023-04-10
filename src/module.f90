@@ -1730,7 +1730,7 @@ module me_calculate
         return 
        end if
        theta = acos(k_cart(3)/k_f)
-       phi = sign(acos(k_cart(2)/sqrt(k_cart(1)**2 + k_cart(2)**2)), k_cart(2))
+       phi = sign(acos(k_cart(2)/sqrt(k_cart(1)**2 + k_cart(2)**2 + 0.0000001d0)), k_cart(2))
 
        
    end subroutine cartesian_to_spherical
@@ -1796,5 +1796,6 @@ module me_calculate
         !call now(time_end)
       ! write(*,*) "get me"
    end subroutine get_matrix_element
+
 
 end module me_calculate

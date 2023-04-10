@@ -54,6 +54,10 @@ subroutine unfolding_kpath
    real(dp), external :: delta
    NumberofEta = 9
 
+   !! open the file to save matrix element values
+   !open(unit=123, file="me.dat")
+  ! write(123,'(7(a12))')'#','kx', 'ky', 'kz', 'atom_name', 'proj_name', 'me'
+  ! write(123,'(7(a12))')'#Column', '1', '2', '3', '4', '5', '6'
 
    !> set up selected atoms and orbitals
    if (Landaulevel_unfold_line_calc) then
@@ -383,6 +387,10 @@ subroutine unfolding_kplane
    real(dp), external :: delta
    NumberofEta = 9
 
+   !! open the file to save matrix element values
+  ! open(unit=123, file="me.dat")
+  ! write(123,'(6(a12))')'#kx', 'ky', 'kz', 'atom_name', 'proj_name', 'me'
+   
    !> Nk1 and Nk2 should be odd number so that the center of the kslice is (0,0)
    !> if you want to calculate the QPI
    nkx=Nk1; nky=Nk2
@@ -731,6 +739,7 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
    !> delta function
    real(dp), external :: delta, norm
 
+   
 
    !> k_PBZ_direct and k_SBZ_direct should be different by an reciprocal lattice vector of the Origin_cell (SBZ)
    call direct_cart_rec_unfold(k_PBZ_direct, k_cart)
@@ -783,14 +792,27 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
             end do
 
       me = 0d0 !! initialize the variable
+      
+      if ( (atom_name_PC /= 'Se') .or. (projector_name_PC /= 'pz')) then
+         me_values(io_PC) = me
+         cycle
+      end if!! if we want to see specific orbital's contribution
+
+      
       call get_matrix_element(atom_name_PC, projector_name_PC, k_cart, me)
+      !write(*,'(3(f12.5),3x,2(a12),(f18.10))') k_cart(1), k_cart(2), k_cart(3), atom_name_PC, projector_name_PC, abs(me)**2
       me_values(io_PC) = me
+      !write(*,*) 'get', atom_name_PC, projector_name_PC, me
+      
+       !! save the me values
    enddo ! io_PC
+   !write(123,*) '   '
 
    do ig=1, NumberofSelectedOrbitals_groups
+       overlp=0d0
       do io_PC=1, Folded_cell%NumberofSpinOrbitals
          icount = 0
-         overlp=0d0
+        
          atom_name_PC= adjustl(trim(Folded_cell%atom_name(Folded_cell%spinorbital_to_atom_index(io_PC))))
          projector_PC= Folded_cell%spinorbital_to_projector_index(io_PC)
          tau_j_tilde= Folded_cell%wannier_centers_direct(:, io_PC)
@@ -825,9 +847,10 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
 
             !> brodening is 0.1 Angstrom
             overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)*me_values(io_PC)
+            !overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))/delta(0.1d0, 0d0)*me_values(io_PC)
             
          enddo ! io
-        
+        !overlp = overlp + me_values(io_PC)
         !pause
       enddo ! io_PC
       weight(ig)= weight(ig)+ abs(overlp)**2
