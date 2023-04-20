@@ -10,7 +10,7 @@ OBJ =  module.o sparse.o wt_aux.o math_lib.o symmetry.o readHmnR.o inverse.o pro
   		 effective_mass.o findnodes.o \
 		 sigma_OHE.o sigma.o sigma_AHC.o \
        main.o
-
+#%.o: %.mod
 # compiler
 F90  = mpiifort -fpp -DMPI -DINTELMKL -fpe3
 

@@ -3877,7 +3877,7 @@ subroutine direct_cart_rec_unfold(k1, k2)
    real(dp), intent(inout) :: k2(3)
 
    K2= k1(1)*Folded_cell%Kua+ k1(2)*Folded_cell%Kub+ k1(3)*Folded_cell%Kuc
-
+   
    return
 end subroutine direct_cart_rec_unfold
 

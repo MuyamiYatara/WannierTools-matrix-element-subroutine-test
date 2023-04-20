@@ -1,4 +1,4 @@
-# 1 "/home/ycshen/wannier_tools-2.6.2/src/unfolding.f90"
+# 1 "/home/ycshen/wannier_tools_test/src/unfolding.f90"
 
 subroutine unfolding_kpath
 !> Unfold the energy bands of the supercell to a specified unit cell.
@@ -7,6 +7,8 @@ subroutine unfolding_kpath
 !> Implemented by QSWU 2019
    use para
    use sparse
+   use me_calculate
+
    implicit none
 
    real(dp), allocatable :: omega(:), eta_array(:)
@@ -55,10 +57,6 @@ subroutine unfolding_kpath
    real(dp), external :: delta
    NumberofEta = 9
 
-!! open the file to save matrix element values
-!open(unit=123, file="me.dat")
-! write(123,'(7(a12))')'#','kx', 'ky', 'kz', 'atom_name', 'proj_name', 'me'
-! write(123,'(7(a12))')'#Column', '1', '2', '3', '4', '5', '6'
 
 !> set up selected atoms and orbitals
    if (Landaulevel_unfold_line_calc) then
@@ -109,14 +107,14 @@ subroutine unfolding_kpath
          nvecs= Num_wann*Magq
          allocate( hamk_bulk(num_wann*Magq, num_wann*Magq))
       else
-         neval= Num_wann*nslab
-         nvecs= Num_wann*nslab
-         allocate( hamk_bulk(num_wann*nslab, num_wann*nslab))
+         neval= Num_wann
+         nvecs= Num_wann
+         allocate( hamk_bulk(num_wann, num_wann))
       endif
    endif
    allocate( W( neval))
-   allocate( psi(Num_wann*nslab))
-   allocate( zeigv(Num_wann*nslab,nvecs))
+   allocate( psi(Num_wann))
+   allocate( zeigv(Num_wann,nvecs))
    allocate( weight(NumberofSelectedOrbitals_groups_local))
    allocate( spectrum_unfold(omeganum_unfold, NumberofEta, NumberofSelectedOrbitals_groups_local, nk3_band)) 
    allocate( spectrum_unfold_mpi(omeganum_unfold, NumberofEta, NumberofSelectedOrbitals_groups_local, nk3_band)) 
@@ -136,8 +134,10 @@ subroutine unfolding_kpath
 
 !> first unfold the kpoints from the kpath of the supercell
    do ik= 1+cpuid, nk3_band, num_cpu
-      if (cpuid==0) write(stdout, '(a, i10," /", i10)') 'BulkBand unfolding at :', ik, nk3_band
+!if (cpuid==0)
+      write(stdout, '(a, i10, i10," /", i10)') 'BulkBand unfolding at :',cpuid, ik, nk3_band
       k_PBZ_direct= k3points(:, ik)
+!write(*,*) k_PBZ_direct
       call direct_cart_rec_unfold(k_PBZ_direct, k_cart)
       if (Landaulevel_unfold_line_calc) then 
          call cart_direct_rec_magneticcell(k_cart, k_PBZ_direct_in_SBZ)
@@ -206,11 +206,11 @@ subroutine unfolding_kpath
             call now(time3)
          else
 ! dense hr
-!!call ham_bulk_atomicgauge(k_SBZ_direct, zeigv)
-            call ham_slab(k_SBZ_direct(1:2), zeigv)
+            call ham_bulk_atomicgauge(k_SBZ_direct, zeigv)
+            
 ! diagonalize the Hamiltonian, zeigv is the Hamiltonian matrix before eigensystem_c calling.
 ! It will be replaced by the eigenvectors after eigensystem_c calling.
-            call eigensystem_c('V', 'U', Num_wann*nslab ,zeigv, W)
+            call eigensystem_c('V', 'U', Num_wann ,zeigv, W)
          endif
       endif  ! unfold landaulevel or not
 
@@ -219,10 +219,11 @@ subroutine unfolding_kpath
       do n= 1, neval
          psi= zeigv(:, n)
          if (Landaulevel_unfold_line_calc) then
+            
             call get_projection_weight_bulk_unfold(Ndimq, k_SBZ_direct, k_PBZ_direct, psi, weight, Magnetic_cell, &
               NumberofSelectedOrbitals_groups_local, NumberofSelectedOrbitals_local, Selected_WannierOrbitals_local)
          else
-            call get_projection_weight_bulk_unfold(num_wann*nslab, k_SBZ_direct, k_PBZ_direct, psi, weight, Origin_cell, &
+            call get_projection_weight_bulk_unfold(num_wann, k_SBZ_direct, k_PBZ_direct, psi, weight, Origin_cell, &
               NumberofSelectedOrbitals_groups_local, NumberofSelectedOrbitals_local, Selected_WannierOrbitals_local)
          endif
          do ig=1, NumberofSelectedOrbitals_groups_local
@@ -233,28 +234,26 @@ subroutine unfolding_kpath
                enddo ! ie
             enddo ! ieta
          enddo ! ig
-!write(*,*) "n=", n
+         write(stdout, *) "n", n
       enddo ! sum over n
-!write(*,*) 'k=', ik
    enddo !ik
-   
-!write(*,*) "we finished the loop"
-# 246
+
+# 245
 
    spectrum_unfold_mpi= spectrum_unfold
 
-
+   write(stdout,*) "loop done"
    outfileindex= outfileindex+ 1
    if (cpuid.eq.0)then
-      
       open (unit=outfileindex, file='spectrum_unfold_kpath.dat')
       write(outfileindex, '("# Column", I5, 100I16)')(i, i=1, 11)
       write(outfileindex, '("#", a, 6X, 300f16.2)')'Brodening \eta (meV): ', Eta_array(:)*1000d0/eV2Hartree
       write(outfileindex, '("# ", a12, 3a16)')'k', ' E(eV)', 'A(k,E)'
       do ik=1, nk3_band
          do ie=1, omeganum_unfold
-            write(outfileindex, '(300f16.8)')k3len_unfold(ik), omega(ie)/eV2Hartree, &
+            write(outfileindex, '(300f32.8)')k3len_unfold(ik), omega(ie)/eV2Hartree, &
                ((spectrum_unfold_mpi(ie, ieta, ig, ik), ieta=1, NumberofEta), ig=1, NumberofSelectedOrbitals_groups_local)
+            write(*,*) spectrum_unfold(ie, ieta, ig, ik)
          enddo
          write(outfileindex, *) ' '
       enddo
@@ -262,12 +261,11 @@ subroutine unfolding_kpath
       write(stdout,*)'<<< Unfold bands successfully'    
    endif
      
-# 270
+# 269
 
 
    outfileindex= outfileindex+ 1
    if (cpuid==0) then
-      
       open(unit=outfileindex, file='spectrum_unfold_kpath.gnu')
       write(outfileindex, '(a)') '#set terminal  postscript enhanced color font ",30"'
       write(outfileindex, '(a)')"#set output 'spectrum_unfold.eps'"
@@ -317,7 +315,7 @@ subroutine unfolding_kpath
 204 format('set arrow from ',F10.5,',',A5,' to ',F10.5,',',A5, ' nohead front lw 3')
 
      
-# 326
+# 324
 
 
    return
@@ -382,10 +380,6 @@ subroutine unfolding_kplane
    real(dp), external :: delta
    NumberofEta = 9
 
-!! open the file to save matrix element values
-! open(unit=123, file="me.dat")
-! write(123,'(6(a12))')'#kx', 'ky', 'kz', 'atom_name', 'proj_name', 'me'
-   
 !> Nk1 and Nk2 should be odd number so that the center of the kslice is (0,0)
 !> if you want to calculate the QPI
    nkx=Nk1; nky=Nk2
@@ -444,13 +438,13 @@ subroutine unfolding_kplane
       allocate( jcoo(nnzmax))
       allocate( icoo(nnzmax))
    else
-      neval= Num_wann*nslab
-      nvecs= Num_wann*nslab
-      allocate( hamk_bulk(num_wann*nslab, num_wann*nslab))
+      neval= Num_wann
+      nvecs= Num_wann
+      allocate( hamk_bulk(num_wann, num_wann))
    endif
    allocate( W( neval))
-   allocate( psi(Num_wann*nslab))
-   allocate( zeigv(Num_wann*nslab,nvecs))
+   allocate( psi(Num_wann))
+   allocate( zeigv(Num_wann,nvecs))
    allocate( weight(NumberofSelectedOrbitals_groups))
    allocate( qpi_unfold(NumberofEta, NumberofSelectedOrbitals_groups, knv3)) 
    allocate( qpi_unfold_mpi(NumberofEta, NumberofSelectedOrbitals_groups, knv3)) 
@@ -498,7 +492,7 @@ subroutine unfolding_kplane
          W= 0d0
 !> after arpack_sparse_coo_eigs, nnz will be updated.
          ritzvec= .true.
-# 508
+# 502
 
          call now(time3)
       else
@@ -512,23 +506,23 @@ subroutine unfolding_kplane
             W= 0d0
 !> after arpack_sparse_coo_eigs, nnz will be updated.
             ritzvec= .true.
-# 523
+# 517
 
             call now(time3)
          else
 ! dense hr
-!call ham_bulk_atomicgauge(k_SBZ_direct, zeigv)
-            call ham_slab(k_SBZ_direct(1:2), zeigv)
+            call ham_bulk_atomicgauge(k_SBZ_direct, zeigv)
+            
 ! diagonalize the Hamiltonian, zeigv is the Hamiltonian matrix before eigensystem_c calling.
 ! It will be replaced by the eigenvectors after eigensystem_c calling.
-            call eigensystem_c('V', 'U', Num_wann*nslab ,zeigv, W)
+            call eigensystem_c('V', 'U', Num_wann ,zeigv, W)
          endif
       endif  ! landaulevel or not
 
 
       do n= 1, neval
          psi= zeigv(:, n)
-         call get_projection_weight_bulk_unfold(Num_wann*nslab, k_SBZ_direct, k_PBZ_direct, psi, weight, Origin_cell, &
+         call get_projection_weight_bulk_unfold(Num_wann, k_SBZ_direct, k_PBZ_direct, psi, weight, Origin_cell, &
               NumberofSelectedOrbitals_groups, NumberofSelectedOrbitals, Selected_WannierOrbitals)
          do ig=1, NumberofSelectedOrbitals_groups
             do ieta= 1, NumberofEta
@@ -536,11 +530,10 @@ subroutine unfolding_kplane
                   weight(ig)*delta(eta_array(ieta), W(n)-E_arc)
             enddo ! ieta
          enddo ! ig
-!write(*,*) "n=", n
       enddo ! sum over n
    enddo !ik
 
-# 553
+# 546
 
    spectrum_unfold_mpi= spectrum_unfold
 
@@ -556,7 +549,7 @@ subroutine unfolding_kplane
       do ik=1, knv3
          ik1= ik12(1, ik)
          ik2= ik12(2, ik)
-         write(outfileindex, '(3000f12.5)')kxy_shape(:, ik)*Angstrom2atomic, kxy_plane(:, ik)*Angstrom2atomic, &
+         write(outfileindex, '(3000f32.5)')kxy_shape(:, ik)*Angstrom2atomic, kxy_plane(:, ik)*Angstrom2atomic, &
               ((spectrum_unfold_mpi(ieta, ig, ik1, ik2), ieta=1, NumberofEta), ig=1, NumberofSelectedOrbitals_groups)
          if (mod(ik, nky)==0) write(outfileindex, *)' '
       enddo
@@ -564,7 +557,7 @@ subroutine unfolding_kplane
       write(stdout,*)'<<< Unfold bands successfully'    
    endif
      
-# 578
+# 571
 
 
    outfileindex= outfileindex+ 1
@@ -620,7 +613,7 @@ subroutine unfolding_kplane
      enddo !iq
 
      qpi_unfold_mpi= 1D-12
-# 636
+# 629
 
      qpi_unfold_mpi= qpi_unfold
 
@@ -674,7 +667,7 @@ subroutine unfolding_kplane
         close(outfileindex)
      endif
    ENDIF ! qpi_unfold
-# 691
+# 684
 
 
    return
@@ -693,7 +686,8 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
    use para, only : dp, projection_weight_mode, &
       cpuid, stdout, Nrpts, irvec, &
       Folded_cell, pi2zi, eps3, cell_type, int_array1D, Landaulevel_unfold_line_calc
-   use me_calculate
+   use me_calculate !! use "!!" to mark the place modified by ycshen
+
    implicit none
 
    integer, intent(in) :: ndim
@@ -717,27 +711,25 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
    real(dp) :: posi_cart(3), posi_direct(3), posi_direct_unfold(3)
    real(dp) :: tau_i_tilde(3), tau_j_tilde(3), dij_tilde_cart(3), dij_tilde_direct(3)
    real(dp) :: k_cart(3), k_SBZ_direct_in_PBZ(3), k_t(3), k_t2(3), k_PBZ_direct_in_SBZ(3)
-   real(dp) :: kdotr        
-   complex(dp) :: overlp
+   real(dp) :: kdotr, r_abs, k_abs         
+   complex(dp) :: overlp, overlp_i
    character(10) :: atom_name_PC, atom_name_SC, projector_name_PC !! orbital name
-   complex(dp) :: me  !! matrix element
-   complex(dp), allocatable :: me_values(:) !! matrix element values
+   complex(dp) :: me !! matrix element
+   complex(dp), allocatable :: me_values(:)
 
 !> delta function
    real(dp), external :: delta, norm
 
-   
 
 !> k_PBZ_direct and k_SBZ_direct should be different by an reciprocal lattice vector of the Origin_cell (SBZ)
    call direct_cart_rec_unfold(k_PBZ_direct, k_cart)
-   
    if (Landaulevel_unfold_line_calc) then
       call cart_direct_rec_magneticcell(k_cart, k_PBZ_direct_in_SBZ)
    else
       call cart_direct_rec(k_cart, k_PBZ_direct_in_SBZ)
    endif
    call periodic_diff(k_PBZ_direct_in_SBZ, k_SBZ_direct, k_t)
-
+!write(*,*)"k_PBZ", k_PBZ_direct, k_cart
 !> check if k_t is the integer times of the reciprocal lattice vector of Origin_cell
    if (norm(k_t)>eps3) then
       weight= 0d0
@@ -753,13 +745,11 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
    call cart_direct_rec_unfold(k_cart, k_SBZ_direct_in_PBZ)
 !! let k_cart be the transformation of k_PBZ, not the k_SPZ in the first brillouin zone
    call direct_cart_rec_unfold(k_PBZ_direct, k_cart)
-   
+!write(*,*) k_PBZ_direct, k_cart
    weight= 0d0
-
 !> k_t is in unit of the reciprocal lattice vector of the primitive unit cell (Folded_cell).
    k_t=k_PBZ_direct-k_SBZ_direct_in_PBZ
-   
-!! calculate the matrix element values
+
    allocate(me_values(Folded_cell%NumberofSpinOrbitals))
    do io_PC=1, Folded_cell%NumberofSpinOrbitals
 
@@ -779,27 +769,18 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
             end do
 
       me = 0d0 !! initialize the variable
-      
-      if ( (atom_name_PC /= 'Se') .or. (projector_name_PC /= 'pz')) then
-         me_values(io_PC) = me
-         cycle
-      end if!! if we want to see specific orbital's contribution
-
-      
       call get_matrix_element(atom_name_PC, projector_name_PC, k_cart, me)
-!write(*,'(3(f12.5),3x,2(a12),(f18.10))') k_cart(1), k_cart(2), k_cart(3), atom_name_PC, projector_name_PC, abs(me)**2
       me_values(io_PC) = me
-!write(*,*) 'get', atom_name_PC, projector_name_PC, me
-      
-!! save the me values
    enddo ! io_PC
-!write(123,*) '   '
+
+   k_abs = sqrt(k_cart_abs**2 - k_cart(1)**2 - k_cart(2)**2)
+   write(*,*) k_cart_abs, (k_cart_abs**2 - k_cart(1)**2 - k_cart(2)**2), k_abs
 
    do ig=1, NumberofSelectedOrbitals_groups
-       overlp=0d0
+      overlp_i = 0d0
       do io_PC=1, Folded_cell%NumberofSpinOrbitals
          icount = 0
-        
+         overlp = 0d0
          atom_name_PC= adjustl(trim(Folded_cell%atom_name(Folded_cell%spinorbital_to_atom_index(io_PC))))
          projector_PC= Folded_cell%spinorbital_to_projector_index(io_PC)
          tau_j_tilde= Folded_cell%wannier_centers_direct(:, io_PC)
@@ -808,8 +789,9 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
             io_SC = Selected_WannierOrbitals(ig)%iarray(io)
             atom_name_SC= adjustl(trim(origincell%atom_name(origincell%spinorbital_to_atom_index(io_SC))))
             projector_SC= origincell%spinorbital_to_projector_index(io_SC)
-
+!! we need to know the orbital name to calculate the matrix element
             
+!write(*,*) projector_name_SC
 
 !> The atom name and the orbital should be the same between SC and PC
             if (atom_name_SC/=atom_name_PC .or. projector_SC/=projector_PC)cycle
@@ -823,6 +805,10 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
 !> here we only take the lattice part
             kdotr=dot_product(posi_direct_unfold, k_t)
 
+!!calculate the |r|,|k|
+!r_abs = sqrt(dot_product(posi_cart, posi_cart))
+            
+
             call periodic_diff(tau_j_tilde, tau_i_tilde, dij_tilde_direct)
             call direct_cart_real_unfold(dij_tilde_direct, dij_tilde_cart)
 
@@ -830,20 +816,22 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
                icount=icount+ 1
             endif
 
-!call get_matrix_element(atom_name_SC, projector_name_SC, k_cart, me) !move away
+!!> calculate the matrix element
+            
+!call get_matrix_element(atom_name_SC, projector_name_SC, k_cart, me)
+!write(*,*) me
 
 !> brodening is 0.1 Angstrom
-            overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)*me_values(io_PC)
-!overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))/delta(0.1d0, 0d0)*me_values(io_PC)
-            
+!overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)
+            overlp_i= overlp_i+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)*me_values(io_PC)*exp(zi*k_abs*posi_cart(3))
          enddo ! io
-!overlp = overlp + me_values(io_PC)
+!weight(ig)= weight(ig)+ abs(overlp)**2
+         
 !pause
       enddo ! io_PC
-      weight(ig)= weight(ig)+ abs(overlp)**2
-!write(*,*) weight(ig)
+      weight(ig)= weight(ig)+ abs(overlp_i)**2
    enddo ! ig
-   weight= weight/origincell%CellVolume*Folded_cell%CellVolume
-
+!weight= weight*origincell%CellVolume
+   weight= weight*origincell%CellVolume
    return
 end subroutine get_projection_weight_bulk_unfold

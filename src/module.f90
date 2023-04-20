@@ -1365,10 +1365,10 @@ module me_calculate
    
    implicit none
    integer :: p_num = 200 ! how many sections we divide the integrate interval into
-   real(dp) :: inte_b = 50d0! the integral upper limit we start from to approach infinity
+   real(dp) :: inte_b = 50d0! the integral upper limit we sKtart from to approach infinity
    real(dp) :: convergence_delta = 0.001d0 ! the convergence condition, when the integral result comes to slow down to a extent
    real(dp) :: inte_step = 10d0! step lenth when approaching infinity
-   
+   real(dp) :: k_cart_abs = 17.5d0 ! final k lenth
    contains
 
    !> This subroutine is used to calculate the effective nuclear charge number Z_eff under slater rules
@@ -1717,22 +1717,23 @@ module me_calculate
 
    !> Transform the k in cartesian to spherical coordinate
    subroutine cartesian_to_spherical(k_cart, k_f, theta, phi)
-
+    
 
        implicit none
        real(dp), intent(in):: k_cart(3)
-       real(dp) :: k_f, theta, phi ! value of phi is in [-π, π] 
+       real(dp) :: k_z, k_f, theta, phi ! value of phi is in [-π, π] 
 
-       k_f = sqrt(k_cart(1)**2 + k_cart(2)**2 + k_cart(3)**2)
-       if(k_f == 0) then
-        theta = 0.0d0
-        phi = 0.0d0
-        return 
-       end if
-       theta = acos(k_cart(3)/k_f)
+       !k_f = sqrt(k_cart(1)**2 + k_cart(2)**2 + k_cart(3)**2)
+       k_f = k_cart_abs
+      !if(k_f == 0) then
+      ! theta = 0.0d0
+      ! phi = 0.0d0
+      ! return 
+      ! end if
+       k_z = sqrt(k_f**2 - k_cart(1)**2 - k_cart(2)**2)!k_cart(3)
+       theta = acos(k_z/k_f)
        phi = sign(acos(k_cart(2)/sqrt(k_cart(1)**2 + k_cart(2)**2 + 0.0000001d0)), k_cart(2))
-
-       
+      !write(*,*) 'kf', k_f!, 'k2', k_cart(2), 'k1', k_cart(1)
    end subroutine cartesian_to_spherical
 
 
@@ -1781,7 +1782,7 @@ module me_calculate
 
        !> calculate the integral
        call cartesian_to_spherical(k_cart, k_f, k_theta, k_phi) ! get k under spherical coordinate
-      ! write(*,*)"k_in_spherical", k_theta!k_f, , k_phi
+       !write(*,*)"k_in_spherical", k_f!k_theta, , k_phi
        call Z_eff_cal(ele_name, n, l, Z_eff)
       ! write(*,*) Z_eff
        !call now(time_start)
@@ -1794,8 +1795,7 @@ module me_calculate
        matrix_element_res = inte_res*Ylm(k_theta, k_phi, l, m)*4d0*Pi*(-1)**l
         !write(*,*) Ylm(k_theta, k_phi, l, m), matrix_element_res
         !call now(time_end)
-      ! write(*,*) "get me"
+       !write(*,*) time_start, time_end
    end subroutine get_matrix_element
-
 
 end module me_calculate
