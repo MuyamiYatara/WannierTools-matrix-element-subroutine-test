@@ -832,11 +832,11 @@ subroutine get_projection_weight_bulk_unfold(ndim, k_SBZ_direct, k_PBZ_direct, p
             !!> calculate the matrix element
             
             !call get_matrix_element(atom_name_SC, projector_name_SC, k_cart, me)
-            !write(*,*) me
+            write(*,*) k_t(3)
 
             !> brodening is 0.1 Angstrom
             !overlp= overlp+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)
-            overlp_i= overlp_i+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)*me_values(io_PC)*exp(zi*k_abs*posi_cart(3))
+            overlp_i= overlp_i+ delta(0.1d0, norm(dij_tilde_cart))*exp(-pi2zi*(kdotr))*psi(io_SC)/delta(0.1d0, 0d0)*me_values(io_PC)*exp(zi*(k_abs-k_cart(3))*posi_cart(3))!!
          enddo ! io
          !weight(ig)= weight(ig)+ abs(overlp)**2
          

@@ -1352,7 +1352,7 @@ module me_calculate
    real(dp) :: inte_b = 50d0! the integral upper limit we sKtart from to approach infinity
    real(dp) :: convergence_delta = 0.001d0 ! the convergence condition, when the integral result comes to slow down to a extent
    real(dp) :: inte_step = 10d0! step lenth when approaching infinity
-   real(dp) :: k_cart_abs = 17.5d0 ! final k lenth
+   real(dp) :: k_cart_abs = 15d0 ! final k lenth
    contains
 
 !> This subroutine is used to calculate the effective nuclear charge number Z_eff under slater rules
